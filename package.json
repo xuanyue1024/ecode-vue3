@@ -1,0 +1,40 @@
+{
+  "name": "ecode-vue3",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@ant-design/icons-vue": "^7.0.1",
+    "@github/webauthn-json": "^2.1.1",
+    "@types/highlight.js": "^9.12.4",
+    "ant-design-vue": "^4.0.0-rc.6",
+    "axios": "^1.13.2",
+    "diff2html": "^3.4.52",
+    "echarts": "^6.0.0",
+    "github-markdown-css": "^5.8.1",
+    "highlight.js": "^11.11.1",
+    "katex": "^0.16.25",
+    "marked": "^15.0.12",
+    "md-editor-v3": "^6.2.0",
+    "md5": "^2.3.0",
+    "monaco-editor": "^0.55.1",
+    "pinia": "^3.0.4",
+    "pinia-plugin-persistedstate": "^4.7.1",
+    "splitpanes": "^4.0.4",
+    "vue": "^3.5.24",
+    "vue-router": "^4.6.3"
+  },
+  "devDependencies": {
+    "@types/md5": "^2.3.6",
+    "@types/node": "^24.10.1",
+    "@vitejs/plugin-vue": "^5.2.1",
+    "typescript": "^5.9.3",
+    "vite": "^5.4.11",
+    "vue-tsc": "^3.1.5"
+  }
+}
