@@ -9,6 +9,18 @@ import { useUserStore } from '@/stores/user'
 import { get, parseRequestOptionsFromJSON } from '@github/webauthn-json/browser-ponyfill'
 import { generateUUID } from '@/utils/tool'
 
+// 获取环境变量 (做了一些容错处理，防止本地开发报错)
+const meta = {
+  branch: import.meta.env.VITE_BRANCH_NAME || 'local',
+  number: import.meta.env.VITE_BUILD_NUMBER || '0',
+  url: import.meta.env.VITE_BUILD_URL || '#',
+  sha: import.meta.env.VITE_COMMIT_SHA || '000000',
+  date: import.meta.env.VITE_BUILD_DATE || 'Today'
+};
+
+// 判断是否是本地开发环境 (没有链接就是本地)
+const isLocal = meta.url === '#';
+
 const router = useRouter()
 const userStore = useUserStore()
 
@@ -234,15 +246,25 @@ const startCountdown = () => {
     <div class="info-banner" :class="{ 'slide-in': showBanner }">
       <InfoCircleOutlined class="banner-icon" />
       <span>点击链接获取软件介绍以及使用说明：</span>
-      <a href="https://gitee.com/xuanyue03/e-code/blob/main/README.md#22-%E5%AD%A6%E7%94%9F%E4%BD%BF%E7%94%A8%E6%B5%81%E7%A8%8B" target="_blank" class="banner-link">
-        查看文档 (Gitee 镜像)
+      <a style="text-decoration: none;" href="https://github.com/xuanyue1024/e-code/blob/main/README.md" target="_blank" class="banner-link">
+        GitHub
+      </a>
+      <span style="margin: 0 0px; color: #1890ff;">|</span>
+      <a style="text-decoration: none;" href="https://gitee.com/xuanyue03/e-code/blob/main/README.md" target="_blank" class="banner-link">
+        Gitee
       </a>
     </div>
 
     <a-card class="login-box" :bordered="false">
       <a-row :gutter="24" type="flex" align="middle">
         <a-col :span="12" class="login-left">
-          <img src="../../assets/ecode.png" alt="ecode" class="logo-img" />
+          <div class="left-content">
+            <img src="../../assets/ecode.png" alt="ecode" class="logo-img" />
+            <a href="https://github.com/xuanyue1024/e-code" target="_blank" class="simple-github-link">
+              <img src="../../assets/github.svg" alt="GitHub" />
+              <span>GitHub Repository</span>
+            </a>
+          </div>
         </a-col>
         <a-col :span="12">
           <div v-if="isLoginPage">
@@ -367,6 +389,25 @@ const startCountdown = () => {
         </a-col>
       </a-row>
     </a-card>
+
+    <!-- Build Info Bar -->
+    <div class="build-bar">
+      <div class="project-name">ecode</div>
+      <div class="build-info">
+        <span class="version">{{ meta.number }}</span>
+        <span class="at">@</span>
+        <span class="branch-name">{{ meta.branch }}</span>
+        
+        <a v-if="!isLocal" :href="meta.url" target="_blank" class="build-link" title="View Build Log">
+          ({{ meta.sha.substring(0, 7) }})
+        </a>
+        <span v-else class="build-local">#dev</span>
+
+        <span class="divider">•</span>
+
+        <span class="build-date">{{ meta.date }}</span>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -494,5 +535,77 @@ const startCountdown = () => {
 
 .banner-link:hover {
   color: #40a9ff;
+}
+
+.left-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
+}
+
+.simple-github-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  border-radius: 20px;
+  background: rgba(0, 0, 0, 0.04);
+  color: #666;
+  font-size: 14px;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.simple-github-link:hover {
+  background: rgba(0, 0, 0, 0.08);
+  color: #333;
+  transform: translateY(-1px);
+}
+
+.simple-github-link img {
+  width: 18px;
+  height: 18px;
+  opacity: 0.8;
+}
+
+.build-bar {
+  position: fixed;
+  bottom: 20px;
+  left: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: #999;
+  font-size: 12px;
+  z-index: 10;
+}
+
+.project-name {
+  font-weight: bold;
+  font-size: 14px;
+  margin-bottom: 4px;
+  color: #999;
+}
+
+.build-info {
+  display: flex;
+  gap: 2.5px;
+}
+
+/* .at {
+  margin: 0 0px;
+} */
+
+.build-link {
+  color: #999;
+  text-decoration: none;
+}
+
+.build-link:hover {
+  text-decoration: underline;
+  color: #666;
 }
 </style>
