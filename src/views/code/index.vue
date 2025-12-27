@@ -493,7 +493,7 @@ const updateLanguage = (value: string) => {
       monaco.editor.setModelLanguage(model, getMonacoLanguage(value))
     }
     // Set example code
-    // monacoEditor.setValue(store.getters.getExampleCode(value)) // Need to implement store getter
+    monacoEditor.setValue(userStore.getExampleCode(value as any))
   }
 }
 
@@ -508,6 +508,11 @@ const getMonacoLanguage = (language: string) => {
     'cpp': 'cpp',
     'nodejs': 'javascript',
     'go': 'go',
+    '.net': 'csharp',
+    'php': 'php',
+    'rust': 'rust',
+    'swift': 'swift',
+    'kotlin': 'kotlin',
   }
   return languageMap[language] || language
 }
