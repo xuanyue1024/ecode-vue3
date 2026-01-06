@@ -26,7 +26,7 @@
             <MessageOutlined />
           </div>
           <div class="chat-item-content">
-            <div class="chat-item-title">会话 {{ chatList.length - index }}</div>
+            <div class="chat-item-title">{{ item.title || ('会话 ' + (chatList.length - index)) }}</div>
             <div class="chat-item-time">{{ formatDate(item.createTime) }}</div>
           </div>
           <div class="chat-item-actions">
@@ -56,13 +56,14 @@
       </div>
 
       <div class="chat-content-wrapper" style="flex: 1; overflow: hidden;">
-         <AiChat 
-            :chatId="chatId" 
-            scene="CHAT" 
-            :userInfo="userInfo"
-            :initialMessages="messages"
-            @update:chatId="handleChatIdUpdate"
-         />
+        <AiChat 
+          :chatId="chatId" 
+          scene="CHAT" 
+          :userInfo="userInfo"
+          :initialMessages="messages"
+          @update:chatId="handleChatIdUpdate"
+          @title-updated="handleTitleUpdated"
+        />
       </div>
     </div>
   </div>
@@ -94,6 +95,21 @@ const isLoadingHistory = ref(false)
 const handleChatIdUpdate = (newId: string) => {
   chatId.value = newId
   localStorage.setItem('chatId', newId)
+}
+
+const handleTitleUpdated = (payload: { chatId: string, title: string }) => {
+  try {
+    const { chatId: id, title } = payload as any
+    const found = chatList.value.find(c => c.chgatId === id)
+    if (found) {
+      found.title = title
+    } else {
+      // 如果本地列表中没有，刷新列表以获取最新数据
+      getChatList()
+    }
+  } catch (e) {
+    console.error('处理标题更新失败:', e)
+  }
 }
 
 const getUserDetails = async () => {

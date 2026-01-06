@@ -129,7 +129,7 @@ const props = defineProps<{
   initialMessages?: any[]
 }>()
 
-const emit = defineEmits(['update:chatId', 'message-sent'])
+const emit = defineEmits(['update:chatId', 'message-sent', 'title-updated'])
 
 const messages = ref<any[]>([])
 const inputMessage = ref('')
@@ -324,6 +324,7 @@ const sendMessage = async (content: string) => {
     
     const decoder = new TextDecoder('utf-8')
     let buffer = ''
+    let currentEvent = ''
     let isReading = true
     
     while (isReading) {
@@ -339,9 +340,23 @@ const sendMessage = async (content: string) => {
       buffer = lines.pop() || ''
       
       for (const line of lines) {
+        if (line.startsWith('event:')) {
+          currentEvent = line.slice(6).trim()
+          continue
+        }
+
         if (line.startsWith('data:')) {
           try {
             const jsonData = JSON.parse(line.slice(5))
+            if (currentEvent === 'title') {
+              if (jsonData.code === 200 && jsonData.data) {
+                emit('title-updated', { chatId: props.chatId, title: String(jsonData.data) })
+              }
+              // after handling title, reset event to avoid consuming subsequent data
+              currentEvent = ''
+              continue
+            }
+
             if (jsonData.code === 200 && jsonData.data !== null) {
               const lastMessage = messages.value[messages.value.length - 1]
               lastMessage.content += jsonData.data
