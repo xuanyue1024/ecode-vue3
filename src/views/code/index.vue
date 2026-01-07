@@ -558,15 +558,8 @@ const getUserDetails = async () => {
   }
 }
 
-const createAiChatIdFunc = async () => {
-  try {
-    const res = await createChatId('CODE')
-    if(res.data.code === 200){
-      chatId.value = res.data.data
-    }
-  } catch (error) {
-    console.error(error)
-  }
+const createAiChatIdFunc = () => {
+  chatId.value = createChatId('CODE')
 }
 
 const goBack = () => {

@@ -1,8 +1,9 @@
 import { getRequest, deleteRequest, postRequest } from '@/utils/request'
+import { generateUUID } from '@/utils/tool'
 
 // 获取新的chatId
-export function createChatId(type: string) {
-  return getRequest(`/api/user/ai/creat?type=${type}`)
+export function createChatId(type?: string) {
+  return generateUUID().replace(/-/g, '')
 }
 
 // 获取会话列表

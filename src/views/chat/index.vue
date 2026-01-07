@@ -196,17 +196,10 @@ const createNewChat = async () => {
   getChatList()
 }
 
-const createAiChatId = async () => {
-  try {
-    const res = await createChatId('CHAT')
-    if(res.data.code === 200){
-      chatId.value = res.data.data
-      window.localStorage.setItem('chatId', res.data.data)
-    }
-  } catch (error) {
-    console.error('创建会话ID失败:', error)
-    antMessage.error('创建会话失败')
-  }
+const createAiChatId = () => {
+  const id = createChatId('CHAT')
+  chatId.value = id
+  window.localStorage.setItem('chatId', id)
 }
 
 const confirmDeleteChat = (id: string) => {
