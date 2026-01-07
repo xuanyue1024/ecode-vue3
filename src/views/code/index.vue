@@ -151,7 +151,7 @@
     </div>
 
     <!-- AI Chat Window -->
-    <div v-if="showAiChat" class="ai-chat-window" :style="{ top: chatPosition.top + 'px', left: chatPosition.left + 'px', width: chatSize.width + 'px', height: chatSize.height + 'px' }">
+    <div v-show="showAiChat" class="ai-chat-window" :style="{ top: chatPosition.top + 'px', left: chatPosition.left + 'px', width: chatSize.width + 'px', height: chatSize.height + 'px' }">
       <div class="ai-chat-wrapper" style="width: 100%; height: 100%;">
         <div class="chat-header" @mousedown="startDrag">
           <span>AI 助手</span>

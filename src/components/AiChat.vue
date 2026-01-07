@@ -265,6 +265,7 @@ const handleSendMessage = async () => {
   }
   
   const content = inputMessage.value
+  inputMessage.value = ''
   await sendMessage(content)
 }
 
@@ -285,7 +286,6 @@ const sendMessage = async (content: string) => {
     renderedContent: await renderMarkdown(content)
   })
   
-  inputMessage.value = ''
   loading.value = true
   scrollToBottom()
 
