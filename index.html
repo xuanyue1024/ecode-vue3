@@ -5,9 +5,44 @@
     <link rel="icon" type="image/svg+xml" href="/logo.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ecode</title>
+    <!-- 引入验证码初始化js -->
+    <script src="/captcha/load.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.staticfile.org/lxgw-wenkai-screen-webfont/1.6.0/lxgwwenkaiscreen.css">
   </head>
   <body>
     <div id="app"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>
+  <style>
+    /* == 天爱验证码相关样式== */
+  #tianai-captcha-parent .slider-bottom {
+    display: flex;
+    align-items: center;
+    margin-top: 10px;
+  }
+  /* 推后两个按钮 */
+  .close-btn { margin-left: auto; }
+  .refresh-btn { margin-left: 15px; } /* 两按钮间距 */
+
+
+  /* 字体 */
+  body {
+    font-family: "LXGW WenKai Screen", system-ui, "Microsoft Yahei", "Segoe UI", Arial, sans-serif;
+  }
+
+  .build-bar {
+    font-family: "JetBrains Mono", "Courier New", monospace, system-ui;
+  }
+
+  /* ant design强制继承 */
+  [class^="ant-"],
+  [class*=" ant-"] {
+    font-family: "LXGW WenKai Screen", system-ui, "Microsoft Yahei", "Segoe UI", Arial, sans-serif !important;
+  }
+
+  /* markdown展示器 */
+  .markdown-body {
+    font-family: "LXGW WenKai Screen", system-ui, "Microsoft Yahei", "Segoe UI", Arial, sans-serif !important;
+  }
+  </style>
 </html>

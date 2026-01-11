@@ -83,9 +83,38 @@ httptool.interceptors.request.use(config => {
     return Promise.reject(error);
 });
 
+import { getCaptchaToken } from "./captcha";
+
 // 响应拦截器
 httptool.interceptors.response.use(
-    response => {
+    async response => {
+        // 调试日志：打印响应状态码
+        // console.log("Response Code:", response.data?.code, "Data:", response.data);
+
+        // 判断是否需要验证码 (假设后端以 200 状态码返回，body中有 code=6000)
+        // 使用宽松相等 == 以兼容字符串 '6000'
+        if (response.data && response.data.code == 6000) {
+            console.log("检测到需验证码验证(code=6000)，准备唤起验证码...");
+            try {
+                // 唤起验证码
+                const token = await getCaptchaToken(response.data.validToken);
+                console.log("验证码通过，获取到 token:", token);
+                
+                // 获取原请求配置
+                const config = response.config;
+
+                
+                // 将验证后的token加入请求头
+                // 注意：这里 header 的名称 'verify-token' 需要与后端约定一致
+                config.headers['Captcha-Token'] = token;
+                
+                // 重新发起请求
+                return httptool(config);
+            } catch (e) {
+                console.error("验证码流程未完成", e);
+                return Promise.reject(e);
+            }
+        }
         return response;
     },
     error => {
