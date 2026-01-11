@@ -13,6 +13,7 @@ import { generateUUID } from '@/utils/tool'
 const meta = {
   branch: import.meta.env.VITE_BRANCH_NAME || 'local',
   number: import.meta.env.VITE_BUILD_NUMBER || '0',
+  numberUrl: import.meta.env.VITE_BUILD_NUMBER_URL || '#',
   url: import.meta.env.VITE_BUILD_URL || '#',
   sha: import.meta.env.VITE_COMMIT_SHA || '000000',
   date: import.meta.env.VITE_BUILD_DATE || 'Today'
@@ -394,11 +395,12 @@ const startCountdown = () => {
     <div class="build-bar">
       <div class="project-name">ecode</div>
       <div class="build-info">
-        <span class="version">{{ meta.number }}</span>
+        <a class="version" :href="meta.numberUrl" title="查看发行版">{{ meta.number }}</a>
+        <!-- <span class="version">{{ meta.number }}</span> -->
         <span class="at">@</span>
         <span class="branch-name">{{ meta.branch }}</span>
         
-        <a v-if="!isLocal" :href="meta.url" target="_blank" class="build-link" title="View Build Log">
+        <a v-if="!isLocal" :href="meta.url" target="_blank" class="build-link" title="查看action构建日志">
           ({{ meta.sha.substring(0, 7) }})
         </a>
         <span v-else class="build-local">#dev</span>
@@ -599,12 +601,12 @@ const startCountdown = () => {
   margin: 0 0px;
 } */
 
-.build-link {
+.build-link, .version {
   color: #999;
   text-decoration: none;
 }
 
-.build-link:hover {
+.build-link:hover, .version:hover {
   text-decoration: underline;
   color: #666;
 }
