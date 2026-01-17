@@ -58,3 +58,11 @@ export const getPasskeyRegistration = () =>
 
 export const passkeyRegistration = (data: any) =>
   postRequest('/api/auth/passkey/registration',data)
+
+// 获取OAuth2授权链接
+export const getOAuth2Url = (oauth2Type: string) => 
+  getRequest(`/api/user/oauth2?oauth2Type=${oauth2Type}`)
+
+// OAuth2回调处理
+export const oauth2Callback = (params: any) => 
+  getRequest(`/api/user/callback?code=${params.code}&state=${params.state}`)

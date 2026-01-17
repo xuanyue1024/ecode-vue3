@@ -1,6 +1,10 @@
 import axios from "axios";
 import { message } from "ant-design-vue";
 import router from "@/router";
+import FingerprintJS from '@fingerprintjs/fingerprintjs'
+
+// 初始化 FingerprintJS
+const fpPromise = FingerprintJS.load()
 
 // 创建 axios 实例
 const httptool = axios.create({
@@ -72,11 +76,20 @@ export const uploadFileRequest = (url: string, file: File) => {
 }
 
 // 请求拦截器
-httptool.interceptors.request.use(config => {
+httptool.interceptors.request.use(async config => {
     const token = window.localStorage.getItem('token') || window.sessionStorage.getItem('token');
     if (token) {
         config.headers['token'] = token;
     }
+    
+    try {
+        const fp = await fpPromise
+        const result = await fp.get()
+        config.headers['fingerprint'] = result.visitorId
+    } catch (e) {
+        console.error('Fingerprint generation failed', e)
+    }
+
     return config;
 }, error => {
     console.log(error);

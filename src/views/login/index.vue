@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, reactive, onMounted, computed } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { message } from 'ant-design-vue'
-import { UserOutlined, LockOutlined, MailOutlined, SafetyOutlined, KeyOutlined, InfoCircleOutlined } from '@ant-design/icons-vue'
+import { UserOutlined, LockOutlined, MailOutlined, SafetyOutlined, KeyOutlined, InfoCircleOutlined, GithubOutlined } from '@ant-design/icons-vue'
 import md5 from 'md5'
-import { login as loginApi, registerByEmail, getEmailCode as getEmailCodeApi, getPasskeyVoucher, getUserInfo } from '@/api/user'
+import { login as loginApi, registerByEmail, getEmailCode as getEmailCodeApi, getPasskeyVoucher, getUserInfo, getOAuth2Url, oauth2Callback } from '@/api/user'
 import { useUserStore } from '@/stores/user'
 import { get, parseRequestOptionsFromJSON } from '@github/webauthn-json/browser-ponyfill'
 import { generateUUID } from '@/utils/tool'
@@ -23,6 +23,7 @@ const meta = {
 const isLocal = meta.url === '#';
 
 const router = useRouter()
+const route = useRoute()
 const userStore = useUserStore()
 
 const showBanner = ref(false)
@@ -33,12 +34,95 @@ const codeLoad = ref(false)
 const codeDisabled = ref(false)
 const emailCodeButtonText = ref('获取验证码')
 const countdown = ref(0)
+const isOAuthRegister = ref(false)
+const registerCode = ref('')
 
 onMounted(() => {
   setTimeout(() => {
     showBanner.value = true
   }, 500)
+  checkOAuthCallback()
 })
+
+const checkOAuthCallback = async () => {
+    // 检查URL参数是否有code (OAuth2回调)
+    const code = route.query.code
+    const state = route.query.state
+    
+    if (code) {
+        loginLoad.value = true
+        try {
+            // 调用回调接口
+            const res = await oauth2Callback({ code, state })
+            
+            // 清除URL参数，避免刷新重复提交
+            router.replace('/login')
+            
+            if (res.data.code === 200) {
+                 message.success('登录成功')
+                 handleLoginSuccess(res.data.data)
+            } else if (res.data.code === 6001) {
+                // 需要注册
+                message.info(res.data.msg)
+                const userData = res.data.data.user
+                registerCode.value = res.data.data.registerCode
+                
+                // 切换到注册页并填充数据
+                isLoginPage.value = false
+                isOAuthRegister.value = true
+                
+                // 填充表单
+                regForm.username = userData.username || ''
+                regForm.email = userData.email || ''
+                regForm.role = undefined // 用户需手动选择
+                
+                // 由于密码不可反解，这里留空让用户自己填，或者如果后端返回了密码hash可以直接用(通常不会)
+                // 备注：prompt说"密码也是可以编辑"，所以我们可以让用户自己设
+                
+            } else {
+                 message.error(res.data.msg || '登录失败')
+            }
+        } catch (error) {
+            console.error('OAuth callback error', error)
+            message.error('第三方登录出错')
+        } finally {
+            loginLoad.value = false
+        }
+    }
+}
+
+const handleLoginSuccess = async (data: any) => {
+      window.localStorage.setItem('token', data.token)
+      userStore.setUserName(data.userName)
+      userStore.setUserRole(data.role)
+      userStore.setName(data.name)
+      
+      try {
+        const userInfoRes = await getUserInfo()
+        if (userInfoRes.data.code === 200) {
+          userStore.setProfilePicture(userInfoRes.data.data.profilePicture)
+        }
+      } catch (e) {
+        console.error('Failed to fetch user info', e)
+      }
+
+      router.push('/')
+}
+
+const loginByGithub = async () => {
+    try {
+        const res = await getOAuth2Url('github')
+        if (res.data.code === 200) {
+            window.location.href = res.data.data.oauth2Url
+        } else {
+            message.error(res.data.msg || '获取授权链接失败')
+        }
+    } catch (error) {
+         console.error(error)
+         message.error('发起登录失败')
+    }
+}
+
 
 const loginFormRef = ref()
 const regFormRef = ref()
@@ -69,37 +153,44 @@ const loginRules = {
   ]
 }
 
-const regRules = {
-  username: [
-    { required: true, message: '请输入用户名', trigger: 'blur' },
-    { min: 3, max: 12, message: '用户名长度在 3 到 12 个字符', trigger: 'blur' }
-  ],
-  password: [
-    { required: true, message: '请输入密码', trigger: 'blur' },
-    { min: 3, max: 12, message: '密码长度在 3 到 12 个字符', trigger: 'blur' }
-  ],
-  confirmPassword: [
-    { required: true, message: '请确认密码', trigger: 'blur' },
-    {
-      validator: async (_rule: any, value: string) => {
-        if (value !== regForm.password) {
-          return Promise.reject('两次输入密码不一致')
+const regRules = computed(() => {
+  const rules: any = {
+      username: [
+        { required: true, message: '请输入用户名', trigger: 'blur' },
+        { min: 3, max: 12, message: '用户名长度在 3 到 12 个字符', trigger: 'blur' }
+      ],
+      password: [
+        { required: true, message: '请输入密码', trigger: 'blur' },
+        { min: 3, max: 12, message: '密码长度在 3 到 12 个字符', trigger: 'blur' }
+      ],
+      confirmPassword: [
+        { required: true, message: '请确认密码', trigger: 'blur' },
+        {
+          validator: async (_rule: any, value: string) => {
+            if (value !== regForm.password) {
+              return Promise.reject('两次输入密码不一致')
+            }
+            return Promise.resolve()
+          },
+          trigger: 'blur'
         }
-        return Promise.resolve()
-      },
-      trigger: 'blur'
-    }
-  ],
-  email: [
-    { required: true, message: '请输入邮箱', trigger: 'blur' },
-    { type: 'email', message: '请输入正确的邮箱地址', trigger: 'blur' }
-  ],
-  emailCode: [
-    { required: true, message: '请输入验证码', trigger: 'blur' },
-    { len: 6, message: '验证码为6位数字', trigger: 'blur' }
-  ],
-  role: [{ required: true, message: '请选择角色', trigger: 'change' }]
-}
+      ],
+      email: [
+        { required: true, message: '请输入邮箱', trigger: 'blur' },
+        { type: 'email', message: '请输入正确的邮箱地址', trigger: 'blur' }
+      ],
+      role: [{ required: true, message: '请选择角色', trigger: 'change' }]
+ }
+ 
+ if (!isOAuthRegister.value) {
+    rules.emailCode = [
+        { required: true, message: '请输入验证码', trigger: 'blur' },
+        { len: 6, message: '验证码为6位数字', trigger: 'blur' }
+    ]
+ }
+ 
+ return rules
+})
 
 const login = async () => {
   try {
@@ -120,21 +211,7 @@ const loginOperation = async (data: any) => {
     const res = await loginApi(data)
     if (res.data.code === 200) {
       message.success('登录成功')
-      window.localStorage.setItem('token', res.data.data.token)
-      userStore.setUserName(res.data.data.userName)
-      userStore.setUserRole(res.data.data.role)
-      userStore.setName(res.data.data.name)
-      
-      try {
-        const userInfoRes = await getUserInfo()
-        if (userInfoRes.data.code === 200) {
-          userStore.setProfilePicture(userInfoRes.data.data.profilePicture)
-        }
-      } catch (e) {
-        console.error('Failed to fetch user info', e)
-      }
-
-      router.push('/')
+      await handleLoginSuccess(res.data.data)
     } else {
       message.error(res.data.msg)
     }
@@ -181,17 +258,35 @@ const register = async () => {
   try {
     await regFormRef.value.validate()
     loginLoad.value = true
-    const data = {
+    
+    // 构造请求数据
+    const data: any = {
       username: regForm.username,
       email: regForm.email,
-      emailCode: regForm.emailCode,
       role: regForm.role,
       password: md5(regForm.password).toUpperCase()
     }
+    
+    if (isOAuthRegister.value) {
+        data.registerCode = registerCode.value
+    } else {
+        data.emailCode = regForm.emailCode
+    }
+
     const res = await registerByEmail(data)
     if (res.data.code === 200) {
-      message.success('注册成功，正在跳转登录')
+      message.success('注册成功，请登录')
       isLoginPage.value = true
+      // 重置状态
+      if (isOAuthRegister.value) {
+          isOAuthRegister.value = false
+          registerCode.value = ''
+          // 清空表单
+          regForm.username = ''
+          regForm.email = ''
+          regForm.password = ''
+          regForm.confirmPassword = ''
+      }
     } else {
       message.error(res.data.msg)
     }
@@ -313,6 +408,11 @@ const startCountdown = () => {
                   <template #icon><KeyOutlined /></template>
                   通行密钥
                 </a-button>
+
+                <a-button block size="large" style="margin-top: 10px;" @click="loginByGithub">
+                  <template #icon><GithubOutlined /></template>
+                  GitHub
+                </a-button>
               </a-form>
             </div>
 
@@ -348,9 +448,9 @@ const startCountdown = () => {
               </a-row>
 
               <a-form-item name="email">
-                <a-input v-model:value="regForm.email" placeholder="邮箱地址" size="large">
+                <a-input v-model:value="regForm.email" placeholder="邮箱地址" size="large" :disabled="isOAuthRegister">
                   <template #prefix><MailOutlined /></template>
-                  <template #suffix>
+                  <template #suffix v-if="!isOAuthRegister">
                     <a-button 
                       type="link" 
                       size="small" 
@@ -374,14 +474,14 @@ const startCountdown = () => {
                 </a-input-password>
               </a-form-item>
 
-              <a-form-item name="emailCode">
+              <a-form-item name="emailCode" v-if="!isOAuthRegister">
                 <a-input v-model:value="regForm.emailCode" placeholder="验证码" size="large">
                   <template #prefix><SafetyOutlined /></template>
                 </a-input>
               </a-form-item>
 
               <div class="form-actions right">
-                <a-button type="link" @click="isLoginPage = true">已有账号？立即登录</a-button>
+                <a-button type="link" @click="() => { isLoginPage = true; isOAuthRegister = false; }">已有账号？立即登录</a-button>
               </div>
 
               <a-button type="primary" block size="large" :loading="loginLoad" @click="register">注册</a-button>

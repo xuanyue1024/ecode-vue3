@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@ant-design/icons-vue": "^7.0.1",
+    "@fingerprintjs/fingerprintjs": "^5.0.1",
     "@github/webauthn-json": "^2.1.1",
     "@types/highlight.js": "^9.12.4",
     "ant-design-vue": "^4.0.0-rc.6",
