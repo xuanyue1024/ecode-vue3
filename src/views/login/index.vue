@@ -8,6 +8,8 @@ import { login as loginApi, registerByEmail, getEmailCode as getEmailCodeApi, ge
 import { useUserStore } from '@/stores/user'
 import { get, parseRequestOptionsFromJSON } from '@github/webauthn-json/browser-ponyfill'
 import { generateUUID } from '@/utils/tool'
+import GiteeIcon from '@/assets/oauth/gitee.svg'
+import FeishuIcon from '@/assets/oauth/feishu.svg'
 
 // 获取环境变量 (做了一些容错处理，防止本地开发报错)
 const meta = {
@@ -37,6 +39,31 @@ const countdown = ref(0)
 const isOAuthRegister = ref(false)
 const registerCode = ref('')
 
+// 定义OAuth提供商配置
+interface OAuthProvider {
+  label: string;
+  value: string;
+  icon: any; 
+}
+
+const oauthProviders = ref<OAuthProvider[]>([
+    {
+        label: 'GitHub', // 展示名称
+        value: 'github', // 对应后端的 oauthType
+        icon: GithubOutlined 
+    },
+    {
+        label: 'Gitee', // 展示名称
+        value: 'gitee', // 对应后端的 oauthType
+        icon: GiteeIcon
+    },
+    {
+        label: '飞书', // 展示名称
+        value: 'feishu', // 对应后端的 oauthType
+        icon: FeishuIcon
+    }
+])
+
 onMounted(() => {
   setTimeout(() => {
     showBanner.value = true
@@ -64,7 +91,7 @@ const checkOAuthCallback = async () => {
             } else if (res.data.code === 6001) {
                 // 需要注册
                 message.info(res.data.msg)
-                const userData = res.data.data.user
+                const userData = res.data.data.userOauthVO.user
                 registerCode.value = res.data.data.registerCode
                 
                 // 切换到注册页并填充数据
@@ -109,9 +136,9 @@ const handleLoginSuccess = async (data: any) => {
       router.push('/')
 }
 
-const loginByGithub = async () => {
+const loginByOAuth = async (provider: OAuthProvider) => {
     try {
-        const res = await getOAuth2Url('github')
+        const res = await getOAuth2Url(provider.value)
         if (res.data.code === 200) {
             window.location.href = res.data.data.oauth2Url
         } else {
@@ -404,15 +431,30 @@ const startCountdown = () => {
                 
                 <a-divider>其他登录方式</a-divider>
                 
-                <a-button block size="large" :loading="passkeyLoad" @click="loginByPasskey">
-                  <template #icon><KeyOutlined /></template>
-                  通行密钥
-                </a-button>
+                <div class="other-login-methods">
+                  <a-tooltip title="通行密钥">
+                    <a-button shape="circle" size="large" :loading="passkeyLoad" @click="loginByPasskey">
+                      <template #icon><KeyOutlined /></template>
+                    </a-button>
+                  </a-tooltip>
 
-                <a-button block size="large" style="margin-top: 10px;" @click="loginByGithub">
-                  <template #icon><GithubOutlined /></template>
-                  GitHub
-                </a-button>
+                  <a-tooltip 
+                      v-for="provider in oauthProviders" 
+                      :key="provider.value"
+                      :title="provider.label"
+                  >
+                    <a-button 
+                        shape="circle" 
+                        size="large" 
+                        @click="loginByOAuth(provider)"
+                    >
+                      <template #icon>
+                        <component v-if="typeof provider.icon !== 'string'" :is="provider.icon" />
+                        <img v-else :src="provider.icon" class="other-login-icon" />
+                      </template>
+                    </a-button>
+                  </a-tooltip>
+                </div>
               </a-form>
             </div>
 
@@ -531,6 +573,25 @@ const startCountdown = () => {
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   overflow: hidden;
+}
+
+.other-login-methods {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.other-login-methods :deep(.ant-btn) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.other-login-icon {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
 }
 
 .login-left {
