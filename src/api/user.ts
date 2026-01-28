@@ -66,3 +66,7 @@ export const getOAuth2Url = (oauth2Type: string) =>
 // OAuth2回调处理
 export const oauth2Callback = (params: any) => 
   getRequest(`/api/user/callback?code=${params.code}&state=${params.state}`)
+
+// 获取二维码数据
+export const generateQrCode = () =>
+  getRequest('/api/user/scan/generate')
