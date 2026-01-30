@@ -372,8 +372,8 @@ const sendMessage = async (content: string) => {
       }
     }
   } catch (error) {
-    console.error('Error:', error)
-    antMessage.error('发送消息失败')
+    console.error('发送消息失败Error:', error)
+    // antMessage.error('发送消息失败')
   } finally {
     loading.value = false
   }

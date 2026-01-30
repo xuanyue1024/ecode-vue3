@@ -312,7 +312,18 @@ onMounted(() => {
 .chat-list {
   flex: 1;
   overflow-y: auto;
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
   padding: 0 12px 16px;
+}
+
+.chat-list::-webkit-scrollbar {
+  width: 0px;
+  height: 0px;
+  background: transparent;
+}
+.chat-list::-webkit-scrollbar-thumb {
+  background: transparent;
 }
 
 .list-title {
