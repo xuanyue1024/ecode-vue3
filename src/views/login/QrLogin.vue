@@ -24,6 +24,25 @@ const countdownStr = computed(() => {
   return `${m}:${s}`
 })
 
+// 是否显示客户端下载弹窗
+const showDownloadModal = ref(false)
+// 官方发布页面地址（用于生成二维码和直接跳转）
+const githubUrl = 'https://github.com/xuanyue1024/EcodeForAndroid/releases'
+const giteeUrl = 'https://gitee.com/xuanyue03/EcodeForAndroid/releases'
+
+// 关闭弹窗后的清理（防止遮罩残留导致页面无法交互）
+const onModalAfterClose = () => {
+    try {
+        // 确保状态为关闭
+        showDownloadModal.value = false
+        // 移除可能残留的遮罩或 wrap（防护性清理）
+        document.querySelectorAll('.ant-modal-mask').forEach(el => el.remove())
+        document.querySelectorAll('.ant-modal-wrap.download-modal-wrap').forEach(el => el.remove())
+    } catch (e) {
+        console.error('afterClose 清理失败', e)
+    }
+}
+
 const initCode = async () => {
     loading.value = true
     // Reset state
@@ -193,10 +212,42 @@ onUnmounted(() => {
     
     <div class="bottom-info">
         <p v-if="!isExpired && status === 'INITIAL'">
-            请使用 <a href="https://github.com/xuanyue1024/e-code" target="_blank" class="ecode-link">ecode 手机客户端</a> 扫码登录<br>
+            请使用 <a href="#" @click.prevent="showDownloadModal = true" class="ecode-link">Ecode 手机客户端</a> 扫码登录<br>
             <span class="countdown">二维码有效期: {{ countdownStr }}</span>
         </p>
     </div>
+    
+    <!-- 客户端下载弹窗：展示两个下载来源的二维码与跳转链接 -->
+    <!-- 弹窗显示右上角关闭图标但不包含底部关闭按钮；可通过点击遮罩或按 Esc 键关闭 -->
+    <!-- 开启 centered 使 Modal 垂直居中 -->
+    <!-- 增加 destroyOnClose 和 afterClose 回调，关闭后确保清理残留遮罩/容器 -->
+    <a-modal v-model:open="showDownloadModal" title="客户端下载" :footer="null" width="440" wrap-class-name="download-modal-wrap" :closable="true" :mask-closable="true" :keyboard="true" :centered="true" :destroyOnClose="true" @afterClose="onModalAfterClose">
+        <div class="download-card single">
+            <div class="download-items">
+                <!-- GitHub 下载项 -->
+                <div class="item">
+                    <qrcode-vue :value="githubUrl" :size="96" level="H" />
+                    <div class="card-body">
+                        <h4>GitHub</h4>
+                        <a :href="githubUrl" target="_blank" rel="noopener" class="download-btn">前往 GitHub 下载</a>
+                    </div>
+                </div>
+
+                <div class="divider" />
+
+                <!-- Gitee 下载项 -->
+                <div class="item">
+                    <qrcode-vue :value="giteeUrl" :size="96" level="H" />
+                    <div class="card-body">
+                        <h4>Gitee</h4>
+                        <a :href="giteeUrl" target="_blank" rel="noopener" class="download-btn">前往 Gitee 下载</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 不需底部关闭按钮，保留遮罩/ESC 关闭交互 -->
+    </a-modal>
   </div>
 </template>
 
@@ -304,4 +355,59 @@ onUnmounted(() => {
 .ecode-link:hover {
     text-decoration: underline;
 }
+
+.download-card.single {
+    padding: 10px;
+    border-radius: 8px;
+    background: transparent;
+}
+
+.download-items {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.download-items .item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.divider {
+    width: 1px;
+    height: 72px;
+    background: #f0f0f0;
+}
+
+.download-card .card-body {
+    text-align: center;
+    margin-top: 8px;
+}
+
+.download-card h4 {
+    margin: 0 0 6px 0;
+    font-size: 14px;
+}
+
+.download-btn {
+    display: inline-block;
+    padding: 6px 10px;
+    background: #1890ff;
+    color: #fff;
+    border-radius: 4px;
+    text-decoration: none;
+}
+
+@media (max-width: 520px) {
+    .download-items {
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+    }
+    .divider { display: none; }
+}
 </style>
+
+

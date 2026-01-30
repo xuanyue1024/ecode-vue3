@@ -11,6 +11,14 @@ export default defineConfig({
     }
   },
   server: {
+    // 绑定到 0.0.0.0，允许局域网其他设备访问
+    host: '0.0.0.0',
+    port: 5173,
+    strictPort: false,
+    // 如果需要在局域网手机/其它设备上启用 HMR，
+    // 可将 hmr.host 设置为本机局域网 IP
+    // hmr: { host: '192.168.x.x' },
+    cors: true, // 启用 CORS
     proxy: {
       '/api': {
         target: 'http://127.0.0.1:8088',
