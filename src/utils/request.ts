@@ -58,6 +58,15 @@ export const deleteRequest = (url: string, data: any) => {
     return httptool.delete(`${url}`, { data: data });
 }
 
+// 传送 SDP 格式的 post 请求 (用于 WebRTC)
+export const postRequestSdp = (url: string, sdp: string) => {
+    return httptool.post(`${url}`, sdp, {
+        headers: {
+            'Content-Type': 'application/sdp'
+        }
+    });
+}
+
 // 传送 查询 格式的 delete 请求
 export const deleteRequestForm = (url: string, params: any) => {
     return httptool.delete(`${url}`, { params: params });

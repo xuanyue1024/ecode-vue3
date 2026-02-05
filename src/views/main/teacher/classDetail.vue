@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed, watch, h } from 'vue'
+import { ref, reactive, onMounted, onBeforeUnmount, computed, watch, h } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { message, Modal } from 'ant-design-vue'
 import { 
@@ -32,6 +32,11 @@ import { checkPdfExists, uploadPdf, deletePdf } from '@/api/ai'
 import { useUserStore } from '@/stores/user'
 import dayjs from 'dayjs'
 import ClassDetailLayout from '@/layout/ClassDetailLayout.vue'
+import DashboardOutlined from '@ant-design/icons-vue/DashboardOutlined'
+import VideoCameraOutlined from '@ant-design/icons-vue/VideoCameraOutlined'
+import WhipPusher from '@/components/live/WhipPusher.vue'
+import DanmakuList from '@/components/live/DanmakuList.vue'
+import type { DanmakuMessage } from '@/api/live'
 
 const route = useRoute()
 const router = useRouter()
@@ -97,6 +102,62 @@ const studentProblemList = ref([])
 const problemRankList = ref([])
 const studentRankList = ref([])
 
+// Live
+const liveChatRef = ref<InstanceType<typeof DanmakuList> | null>(null)
+const whipPusherRef = ref<InstanceType<typeof WhipPusher> | null>(null)
+const liveMessages = ref<DanmakuMessage[]>([])
+const viewerCount = ref(0)
+const isLive = ref(false)
+let ws: WebSocket | null = null
+
+const handleLiveStateChange = (state: string) => {
+    isLive.value = state === 'pushing';
+}
+
+const initWebSocket = () => {
+    if (ws) return;
+    const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+    const host = window.location.host;
+    // 注意：根据开发环境可能需要调整 /api 前缀的处理，这里假设后端 WS 地址对应
+    const url = `${protocol}://${host}/api/ws/live/danmaku/${classInfo.id}`;
+    
+    ws = new WebSocket(url);
+    
+    ws.onopen = () => {
+        console.log('Live WS Connected');
+    };
+    
+    ws.onmessage = (event) => {
+        try {
+            const data = JSON.parse(event.data);
+            if (data.number !== undefined) {
+                viewerCount.value = data.number;
+            } else if (data.msg) {
+                // 弹幕消息
+                const dm: DanmakuMessage = data;
+                // 添加到聊天列表
+                liveChatRef.value?.addMessage(dm);
+                // 添加到推流预览层
+                whipPusherRef.value?.addDanmaku(dm);
+            }
+        } catch (e) {
+            console.error('WS Message Parse Error', e);
+        }
+    };
+    
+    ws.onclose = () => {
+        console.log('Live WS Closed');
+        ws = null;
+        // 可选：重连逻辑
+    };
+}
+
+onBeforeUnmount(() => {
+    if (ws) {
+        ws.close();
+    }
+})
+
 // PDF
 const pdfLoading = ref(false)
 const hasPdf = ref(false)
@@ -129,6 +190,12 @@ watch(activeMenu, (newVal) => {
     setTimeout(() => loadRankCharts(), 100)
   } else if (newVal[0] === 'knowledgeBase') {
     checkPdfExistence()
+  } else if (newVal[0] === 'live') {
+    initWebSocket()
+    // 首次进入加载历史
+    if (liveChatRef.value) {
+        liveChatRef.value.loadHistory()
+    }
   }
 })
 
@@ -661,6 +728,10 @@ const getDifficultyText = (difficulty: number) => {
             <template #icon><ReadOutlined /></template>
             <span>班级题目</span>
           </a-menu-item>
+          <a-menu-item key="live">
+            <template #icon><VideoCameraOutlined /></template>
+            <span>班级直播</span>
+          </a-menu-item>
           <a-menu-item key="problemRank">
             <template #icon><TrophyOutlined /></template>
             <span>排行榜</span>
@@ -745,6 +816,30 @@ const getDifficultyText = (difficulty: number) => {
               </template>
             </a-table>
           </a-card>
+        </div>
+
+        <!-- Live -->
+        <div v-show="activeMenu[0] === 'live'" style="height: calc(100vh - 140px); overflow: hidden;">
+           <a-row :gutter="16" style="height: 100%;">
+             <!-- 左侧推流/预览区域 -->
+             <a-col :span="18" style="height: 100%;">
+                <WhipPusher 
+                  ref="whipPusherRef" 
+                  :class-id="Number(classInfo.id)"
+                  @state-change="handleLiveStateChange"
+                />
+             </a-col>
+             <!-- 右侧聊天区域 -->
+             <a-col :span="6" style="height: 100%;">
+                <DanmakuList 
+                  ref="liveChatRef"
+                  :class-id="Number(classInfo.id)"
+                  :can-send="isLive" 
+                  :current-messages="liveMessages"
+                  :initial-load="true"
+                />
+             </a-col>
+           </a-row>
         </div>
 
         <!-- Problems -->

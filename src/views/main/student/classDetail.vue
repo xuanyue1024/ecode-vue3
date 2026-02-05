@@ -18,6 +18,12 @@ import {
 import { getStudentStatistic } from '@/api/statistic'
 import { getStudentTagsByIds } from '@/api/tag'
 import ClassDetailLayout from '@/layout/ClassDetailLayout.vue'
+import DashboardOutlined from '@ant-design/icons-vue/DashboardOutlined'
+import VideoCameraOutlined from '@ant-design/icons-vue/VideoCameraOutlined'
+import WhepPlayer from '@/components/live/WhepPlayer.vue'
+import DanmakuList from '@/components/live/DanmakuList.vue'
+import type { DanmakuMessage } from '@/api/live'
+import { onBeforeUnmount } from 'vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -58,6 +64,57 @@ const problemQuery = reactive({
   classId: ''
 })
 
+// Live
+const liveChatRef = ref<InstanceType<typeof DanmakuList> | null>(null)
+const whepPlayerRef = ref<InstanceType<typeof WhepPlayer> | null>(null)
+const liveMessages = ref<DanmakuMessage[]>([])
+const viewerCount = ref(0)
+const isLive = ref(false)
+let ws: WebSocket | null = null
+
+const handlePlayerStatusChange = (status: string) => {
+    isLive.value = status === 'playing';
+}
+
+const initWebSocket = () => {
+    if (ws) return;
+    const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+    const host = window.location.host;
+    const url = `${protocol}://${host}/api/ws/live/danmaku/${classInfo.id}`;
+    
+    ws = new WebSocket(url);
+    
+    ws.onopen = () => {
+        console.log('Live WS Connected');
+    };
+    
+    ws.onmessage = (event) => {
+        try {
+            const data = JSON.parse(event.data);
+            if (data.number !== undefined) {
+                viewerCount.value = data.number;
+            } else if (data.msg) {
+                const dm: DanmakuMessage = data;
+                liveChatRef.value?.addMessage(dm);
+                whepPlayerRef.value?.addDanmaku(dm);
+            }
+        } catch (e) {
+            console.error('WS Message Parse Error', e);
+        }
+    };
+    
+    ws.onclose = () => {
+        console.log('Live WS Closed');
+        ws = null;
+    };
+}
+
+onBeforeUnmount(() => {
+    if (ws) {
+        ws.close();
+    }
+})
+
 onMounted(() => {
   classInfo.id = route.params.id as string
   classInfo.name = route.query.name as string || ''
@@ -77,6 +134,12 @@ watch(activeMenu, (newVal) => {
     setTimeout(() => loadCharts(), 100)
   } else if (key === 'statistics') {
     setTimeout(() => loadStatistics(), 100)
+  } else if (key === 'live') {
+    initWebSocket()
+    // 加载历史
+    if (liveChatRef.value) {
+        liveChatRef.value.loadHistory()
+    }
   }
 })
 
@@ -318,6 +381,10 @@ const getGradeText = (grade: string) => {
           <template #icon><ReadOutlined /></template>
           <span>题目集</span>
         </a-menu-item>
+        <a-menu-item key="live">
+            <template #icon><VideoCameraOutlined /></template>
+            <span>班级直播</span>
+        </a-menu-item>
         <a-menu-item key="statistics">
           <template #icon><LineChartOutlined /></template>
           <span>数据统计</span>
@@ -390,6 +457,31 @@ const getGradeText = (grade: string) => {
           @change="handleMemberTableChange"
         />
       </a-card>
+    </div>
+
+    <!-- Live -->
+    <div v-show="activeMenu[0] === 'live'" style="height: calc(100vh - 140px); overflow: hidden;">
+         <a-row :gutter="16" style="height: 100%;">
+             <!-- 左侧播放器区域 -->
+             <a-col :span="18" style="height: 100%;">
+                <WhepPlayer 
+                  ref="whepPlayerRef" 
+                  :class-id="Number(classInfo.id)"
+                  @status-change="handlePlayerStatusChange"
+                  autoplay
+                />
+             </a-col>
+             <!-- 右侧聊天区域 -->
+             <a-col :span="6" style="height: 100%;">
+                <DanmakuList 
+                  ref="liveChatRef"
+                  :class-id="Number(classInfo.id)"
+                  :can-send="isLive" 
+                  :current-messages="liveMessages"
+                  :initial-load="true"
+                />
+             </a-col>
+           </a-row>
     </div>
 
     <!-- Problems -->
