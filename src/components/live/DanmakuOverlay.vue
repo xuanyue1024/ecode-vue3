@@ -53,6 +53,7 @@ const addDanmaku = (message: DanmakuMessage) => {
   const style = {
     top: top,
     color: message.color || '#ffffff',
+    fontSize: message.size ? `${message.size}px` : '14px',
     animationDuration: `${duration}s`,
     border: message.role === 0 ? '2px solid #ff0000' : 'none',
     backgroundColor: message.role === 0 ? 'rgba(255,0,0,0.2)' : 'transparent',

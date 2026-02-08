@@ -8,6 +8,7 @@ export interface DanmakuMessage {
   username: string;
   msg: string; // 弹幕内容
   color: string; // 弹幕颜色
+  size: number; // 弹幕字体大小
   ts: number; // 时间戳
   role: number | null; // 角色(主播-0，为null观众)
 }
@@ -19,6 +20,7 @@ export interface DanmakuDTO {
   classId: number;
   msg: string;
   color?: string;
+  size?: number;
 }
 
 /**

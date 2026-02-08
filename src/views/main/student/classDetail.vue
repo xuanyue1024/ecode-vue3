@@ -488,6 +488,7 @@ const getGradeText = (grade: string) => {
                   :can-send="isLive" 
                   :current-messages="liveMessages"
                   :initial-load="true"
+                  :viewer-count="viewerCount"
                 />
              </a-col>
            </a-row>

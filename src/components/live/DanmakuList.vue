@@ -3,7 +3,12 @@
     <div class="chat-panel" ref="chatPanelRef">
       <!-- 头部：标题与弹窗按钮 -->
       <div class="chat-header">
-        <span>直播互动</span>
+        <span class="header-title">
+            直播互动
+            <span v-if="viewerCount !== undefined" class="viewer-count">
+               ( {{ viewerCount }} 人在线)
+            </span>
+        </span>
         <a-tooltip title="独立窗口聊天 (画中画)">
           <a-button type="text" @click="togglePiP">
             <template #icon>
@@ -23,20 +28,26 @@
         >
           <span v-if="msg.role === 0" class="badge-anchor">主播</span>
           <span class="username">{{ msg.username }}：</span>
-          <span :style="{ color: msg.color }">{{ msg.msg }}</span>
+          <span :style="{ color: msg.color, fontSize: msg.size ? msg.size + 'px' : undefined }">{{ msg.msg }}</span>
         </div>
       </div>
 
       <!-- 发送框 -->
       <div class="input-area">
         <div class="toolbar">
-          <input 
-            type="color" 
-            v-model="inputColor" 
-            class="color-picker" 
-            title="选择弹幕颜色"
-          />
-          <span class="color-tip">配色</span>
+          <div class="tool-item">
+            <input 
+              type="color" 
+              v-model="inputColor" 
+              class="color-picker" 
+              title="选择弹幕颜色"
+            />
+            <span class="color-tip">配色</span>
+          </div>
+          <div class="tool-item">
+             <a-slider v-model:value="inputSize" :min="10" :max="60" style="width: 100px; margin-right: 8px;" />
+             <span class="color-tip" style="min-width: 45px">字号 {{ inputSize }}</span>
+          </div>
         </div>
         <div class="send-box">
           <a-input 
@@ -67,6 +78,7 @@ const props = defineProps<{
   canSend: boolean; // 是否允许发送（例如未开播时禁止）
   currentMessages: DanmakuMessage[]; // 从父组件动态传入的实时消息列表
   initialLoad: boolean; // 是否需要初始化加载历史消息
+  viewerCount?: number; // 在线人数
 }>();
 
 const emit = defineEmits(['new-my-msg']); // 发送成功后通知父组件，以便立即上屏
@@ -74,6 +86,7 @@ const emit = defineEmits(['new-my-msg']); // 发送成功后通知父组件，�
 const messages = ref<DanmakuMessage[]>([]);
 const inputText = ref('');
 const inputColor = ref('#000000');
+const inputSize = ref(14);
 const msgListRef = ref<HTMLElement | null>(null);
 
 // Picture-in-Picture 相关
@@ -168,7 +181,8 @@ const handleSend = async () => {
   const dto: DanmakuDTO = {
     classId: props.classId,
     msg: inputText.value,
-    color: inputColor.value
+    color: inputColor.value,
+    size: inputSize.value
   };
 
   try {
@@ -290,7 +304,12 @@ onMounted(() => {
   align-items: center;
   font-weight: bold;
 }
-
+.viewer-count {
+    font-size: 12px;
+    color: #888;
+    font-weight: normal;
+    margin-left: 5px;
+}
 .message-list {
   flex: 1;
   overflow-y: auto;
@@ -335,6 +354,13 @@ onMounted(() => {
   display: flex;
   align-items: center;
   margin-bottom: 8px;
+  gap: 15px;
+}
+
+.tool-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
 }
 
 .color-picker {
@@ -343,12 +369,12 @@ onMounted(() => {
   padding: 0;
   border: none;
   cursor: pointer;
-  margin-right: 5px;
 }
 
 .color-tip {
   font-size: 12px;
   color: #666;
+  white-space: nowrap;
 }
 
 .send-box {
