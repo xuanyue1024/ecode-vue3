@@ -134,14 +134,14 @@ const startLive = async (type: 'camera' | 'screen') => {
     });
     
     // 3. 创建 Offer
-    // 明确轨道添加顺序：先音频后视频，以匹配播放器端的顺序，防止 m-line 顺序不一致错误
-    const audioTracks = stream.getAudioTracks();
-    if (audioTracks.length > 0) {
-      pc.addTrack(audioTracks[0], stream);
-    }
+    // 明确轨道添加顺序：先视频后音频 (Video First)，这是大多数流媒体服务器(如SRS)的默认偏好
     const videoTracks = stream.getVideoTracks();
     if (videoTracks.length > 0) {
       pc.addTrack(videoTracks[0], stream);
+    }
+    const audioTracks = stream.getAudioTracks();
+    if (audioTracks.length > 0) {
+      pc.addTrack(audioTracks[0], stream);
     }
 
     const offer = await pc.createOffer();

@@ -119,7 +119,7 @@ const initWebSocket = () => {
     const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
     const host = window.location.host;
     // 注意：根据开发环境可能需要调整 /api 前缀的处理，这里假设后端 WS 地址对应
-    const url = `${protocol}://${host}/api/ws/live/danmaku/${classInfo.id}`;
+    const url = `${protocol}://${host}/api/ws/live/${classInfo.id}`;
     
     ws = new WebSocket(url);
     

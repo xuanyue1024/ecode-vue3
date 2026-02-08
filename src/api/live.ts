@@ -22,36 +22,20 @@ export interface DanmakuDTO {
 }
 
 /**
- * 获取100条历史弹幕(老师)
+ * 获取100条历史弹幕
  * @param classId 班级ID
  */
 export const getDanmakuList = (classId: number) => {
-  return getRequest(`/api/teacher/live/danmaku/list/${classId}`);
+  return getRequest(`/api/user/live/danmaku/list/${classId}`);
 };
 
 /**
- * 获取100条历史弹幕(学生)
- * @param classId 班级ID
- */
-/* export const getDanmakuListStu = (classId: number) => {
-  return getRequest(`/api/student/live/danmaku/list/${classId}`);
-}; */
-
-/**
  * 发送弹幕
- * @param data 弹幕信息(老师)
+ * @param data 弹幕信息
  */
 export const sendDanmaku = (data: DanmakuDTO) => {
-  return postRequest(`/api/teacher/live/danmaku/send`, data);
+  return postRequest(`/api/user/live/danmaku/send`, data);
 };
-
-/**
- * 发送弹幕
- * @param data 弹幕信息(学生)
- */
-/* export const sendDanmakuStu = (data: DanmakuDTO) => {
-  return postRequest(`/api/student/live/danmaku/send`, data);
-}; */
 
 /**
  * 教师推流 (WHIP)

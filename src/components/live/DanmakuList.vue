@@ -7,7 +7,7 @@
         <a-tooltip title="独立窗口聊天 (画中画)">
           <a-button type="text" @click="togglePiP">
             <template #icon>
-              <component :is="isPiP ? 'AppstoreAddOutlined' : 'ExportOutlined'" />
+              <img :src="isPiP ? openInNewOff : openInNew" style="filter: brightness(0) invert(0);" />
             </template>
           </a-button>
         </a-tooltip>
@@ -56,6 +56,8 @@
 <script setup lang="ts">
 import { ref, onMounted, nextTick, watch, onBeforeUnmount } from 'vue';
 import { message } from 'ant-design-vue';
+import openInNew from '@/assets/live/open_in_new.svg'
+import openInNewOff from '@/assets/live/open_in_new_off.svg'
 import { ExportOutlined, AppstoreAddOutlined } from '@ant-design/icons-vue';
 import { sendDanmaku, getDanmakuList } from '@/api/live';
 import type { DanmakuDTO, DanmakuMessage } from '@/api/live';

@@ -80,7 +80,7 @@ const initWebSocket = () => {
     if (ws) return;
     const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
     const host = window.location.host;
-    const url = `${protocol}://${host}/api/ws/live/danmaku/${classInfo.id}`;
+    const url = `${protocol}://${host}/api/ws/live/${classInfo.id}`;
     
     ws = new WebSocket(url);
     
@@ -93,7 +93,9 @@ const initWebSocket = () => {
             const data = JSON.parse(event.data);
             if (data.number !== undefined) {
                 viewerCount.value = data.number;
-            } else if (data.msg) {
+            }else if(data.status !== undefined){
+                //status == 表示直播开启,0则是直播关闭
+            }else if (data.msg) {
                 const dm: DanmakuMessage = data;
                 liveChatRef.value?.addMessage(dm);
                 whepPlayerRef.value?.addDanmaku(dm);

@@ -24,7 +24,7 @@
     </div>
      <div v-if="playerState === 'error'" class="status-overlay error-bg">
       <span>{{ errorMsg }}</span>
-      <a-button type="primary" size="small" @click="connectWHEP" v-if="canManualRetry" style="margin-top:10px;">
+      <a-button type="primary" size="small" @click="() => connectWHEP()" v-if="canManualRetry" style="margin-top:10px;">
         重试
       </a-button>
     </div>
@@ -32,23 +32,23 @@
     <!-- 自定义控制条 -->
     <div class="controls-bar" :class="{ 'visible': showControls || !isPlaying }">
       <div class="left-controls">
-         <a-button type="text" ghost @click="togglePlay">
+         <a-button type="text" ghost @click="togglePlay" class="control-btn">
             <template #icon>
-              <component :is="isPlaying ? 'PauseCircleOutlined' : 'PlayCircleOutlined'" style="font-size: 20px;" />
+              <img :src="isPlaying ? pause : play" class="btn-img" />
             </template>
          </a-button>
-         <a-button type="text" ghost @click="toggleMute">
+         <a-button type="text" ghost @click="toggleMute" class="control-btn">
             <template #icon>
-              <component :is="isMuted ? 'MutedOutlined' : 'SoundOutlined'" style="font-size: 20px;" />
+              <img :src="isMuted ? volumeMute : volumeNotice" class="btn-img" />
             </template>
          </a-button>
       </div>
 
       <div class="right-controls">
          <a-tooltip title="弹幕开关">
-             <a-button type="text" ghost @click="showDanmaku = !showDanmaku">
+             <a-button type="text" ghost @click="showDanmaku = !showDanmaku" class="control-btn">
                <template #icon>
-                 <component :is="showDanmaku ? 'EyeOutlined' : 'EyeInvisibleOutlined'" style="font-size: 20px;" />
+                 <img :src="showDanmaku ? dankuOpen : dankuClose" class="btn-img" />
                </template>
              </a-button>
           </a-tooltip>
@@ -59,15 +59,15 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount, watch, defineExpose } from 'vue';
-import { 
-  PlayCircleOutlined, 
-  PauseCircleOutlined, 
-  SoundOutlined, 
-  MutedOutlined,
-  EyeOutlined,
-  EyeInvisibleOutlined
-} from '@ant-design/icons-vue';
+import dankuOpen from '@/assets/live/danku_open.svg'
+import dankuClose from '@/assets/live/danku_close.svg'
+import volumeMute from '@/assets/live/volume-mute.svg'
+import volumeNotice from '@/assets/live/volume-notice.svg'
+import play from '@/assets/live/play.svg'
+import pause from '@/assets/live/pause.svg'
+
 import DanmakuOverlay from './DanmakuOverlay.vue';
+import { PlayCircleOutlined, PauseCircleOutlined } from '@ant-design/icons-vue';
 import { startPullStream, type DanmakuMessage } from '@/api/live';
 
 const props = defineProps<{
@@ -95,7 +95,7 @@ const danmakuBuffer = ref<DanmakuMessage[]>([]);
 let pc: RTCPeerConnection | null = null;
 let reconnectTimer: any = null;
 let reconnectAttempts = 0;
-const maxReconnectAttempts = 3;
+const maxReconnectAttempts = 1;//尝试次数
 
 // 暴露添加弹幕方法
 const addDanmaku = (msg: DanmakuMessage) => {
@@ -130,19 +130,42 @@ const checkMutedState = () => {
 
 /**
  * 建立 WHEP 连接
+ * 尝试多种 SDP 协商策略，以适应不同的服务器行为（如 m-line 顺序、数量不匹配等）
  */
-const connectWHEP = async () => {
+const connectWHEP = async (strategyIndex = 0) => {
   if (!props.classId) return;
+
+  // 定义连接策略
+  const strategies = [
+    { name: 'Video+Audio (Video First)', video: true, audio: true, orderFirst: 'video' },
+    { name: 'Video+Audio (Audio First)', video: true, audio: true, orderFirst: 'audio' },
+    { name: 'Video Only', video: true, audio: false, orderFirst: 'video' },
+    { name: 'Audio Only', video: false, audio: true, orderFirst: 'audio' }
+  ];
+
+  if (strategyIndex >= strategies.length) {
+      console.error('[WHEP] 所有连接策略均失败');
+      errorMsg.value = '无法建立媒体连接(协议不匹配)';
+      playerState.value = 'error';
+      handleReconnect(); // 耗尽所有策略后，进入常规的时间间隔重连
+      return;
+  }
   
-  console.log('[WHEP] 开始建立连接 ClassId:', props.classId);
-  closeConnection();
+  const currentStrategy = strategies[strategyIndex];
+  console.log(`[WHEP] 尝试连接策略 [${strategyIndex + 1}/${strategies.length}]: ${currentStrategy.name}`);
+  
+  // 清理旧连接
+  closeConnection(); // 注意：这会重置 pc
   
   const videoElement = videoRef.value;
   if (!videoElement) return;
 
-  playerState.value = 'connecting';
-  errorMsg.value = '';
-  emit('status-change', 'connecting');
+  // 仅在首次尝试时设置状态，避免策略切换时界面闪烁
+  if (strategyIndex === 0) {
+      playerState.value = 'connecting';
+      errorMsg.value = '';
+      emit('status-change', 'connecting');
+  }
 
   try {
     pc = new RTCPeerConnection({
@@ -153,9 +176,8 @@ const connectWHEP = async () => {
       console.log('[WHEP] 收到远程流');
       if (videoElement.srcObject !== event.streams[0]) {
         videoElement.srcObject = event.streams[0];
-        // 自动播放尝试
         if (props.autoplay && !props.paused) {
-             videoElement.muted = true; // Ensure mute for autoplay
+             videoElement.muted = true;
              videoElement.play().catch(e => console.warn('Auto play failed', e));
         }
         playerState.value = 'playing';
@@ -167,14 +189,21 @@ const connectWHEP = async () => {
     pc.onconnectionstatechange = () => {
       console.log('[WHEP] 连接状态:', pc?.connectionState);
       if (pc?.connectionState === 'failed' || pc?.connectionState === 'disconnected') {
+         // 连接中断通常不需要切换策略，因为它已经成功连接过一次了
         playerState.value = 'error';
         errorMsg.value = '连接中断';
         handleReconnect();
       }
     };
 
-    pc.addTransceiver('audio', { direction: 'recvonly' });
-    pc.addTransceiver('video', { direction: 'recvonly' });
+    // 根据策略添加 Transceiver
+    if (currentStrategy.orderFirst === 'video') {
+        if (currentStrategy.video) pc.addTransceiver('video', { direction: 'recvonly' });
+        if (currentStrategy.audio) pc.addTransceiver('audio', { direction: 'recvonly' });
+    } else {
+        if (currentStrategy.audio) pc.addTransceiver('audio', { direction: 'recvonly' });
+        if (currentStrategy.video) pc.addTransceiver('video', { direction: 'recvonly' });
+    }
 
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
@@ -184,8 +213,18 @@ const connectWHEP = async () => {
     // 调用 API
     const res = await startPullStream(props.classId, offer.sdp);
     
-    // 解析 Answer SDP
     let answerSdp = '';
+    console.log("sdp返回", res.data);
+
+    // 如果是 400，没开播
+    if (res.data.code === 400) {
+         errorMsg.value = res.data.msg || '未开播';
+         playerState.value = 'error';
+         emit('error', res.data);
+         handleReconnect(); // 常规重连
+         return;
+    }
+
     if (typeof res.data === 'string') {
         answerSdp = res.data;
     } else if (res.data && res.data.sdp) {
@@ -200,22 +239,44 @@ const connectWHEP = async () => {
         throw new Error('未获取到直播流信息(Server returned empty)');
     }
 
-    await pc.setRemoteDescription({ type: 'answer', sdp: answerSdp });
+    // 尝试设置 Remote Description
+    try {
+        await pc.setRemoteDescription({ type: 'answer', sdp: answerSdp });
+    } catch (sdpError: any) {
+        // 如果是 SDP 协商错误，尝试下一个策略
+        if (sdpError.name === 'InvalidAccessError' || sdpError.name === 'InvalidStateError') {
+             console.warn(`[WHEP] 策略 ${currentStrategy.name} 失败 (${sdpError.message})，尝试下一策略...`);
+             await connectWHEP(strategyIndex + 1);
+             return;
+        }
+        throw sdpError;
+    }
+    
     reconnectAttempts = 0;
 
   } catch (err: any) {
     console.error('[WHEP] 连接异常:', err);
-    errorMsg.value = '未开播'; // 简化显示，通常拉不到流就是未开播
+    
+    /* // 如果是 400 或 404，可能是没开播，不尝试其他策略，直接报错等待重试
+    if (err.response && (err.response.status === 400 || err.response.status === 404)) {
+         errorMsg.value = err.response.data?.msg || '未开播';
+         playerState.value = 'error';
+         emit('error', err);
+         handleReconnect(); // 常规重连
+         return;
+    } */
+    
+    // 其他错误则继续降级尝试
+    // 注意：如果是 Network Error，可能需要区分。这里简单起见，如果 offer 发送失败也降级没有意义，但为了鲁棒性可以一试，
+    // 不过通常 API 报错已经在上面处理了。
+    // 如果我们也想对 API 报错进行策略降级（不太可能），可以放这里。
+    // 这里主要处理上面 catch 没有捕获到的同步错误。
+    // 如果是 API 调用失败，通常不需要换 SDP 策略。
+    
+    errorMsg.value = '连接异常';
     playerState.value = 'error';
     emit('error', err);
-    
-    // 如果是 404 或者 500，可能是未开播，这种情况下不需要频繁重连
-    if (err.response && err.response.status === 500) {
-        // 后端说 "如果状态码是500则出错了，要弹出msg消息"
-        errorMsg.value = err.response.data?.msg || '未开播或服务异常';
-    } else {
-        handleReconnect();
-    }
+    handleReconnect();
   }
 };
 
@@ -317,6 +378,21 @@ watch(() => props.classId, () => {
 
 .controls-bar.visible {
   opacity: 1;
+}
+
+.control-btn {
+  color: #fff !important;
+}
+
+.control-btn:hover {
+  color: rgba(255, 255, 255, 0.8) !important;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.btn-img {
+  width: 25px; 
+  height: 25px; 
+  filter: brightness(0) invert(1);
 }
 
 </style>
