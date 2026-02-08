@@ -94,7 +94,14 @@ const initWebSocket = () => {
             if (data.number !== undefined) {
                 viewerCount.value = data.number;
             }else if(data.status !== undefined){
-                //status == 表示直播开启,0则是直播关闭
+                //status == 1 表示直播开启,0则是直播关闭
+                if (data.status === 1) {
+                    whepPlayerRef.value?.play();
+                    isLive.value = true;
+                } else if (data.status === 0) {
+                    whepPlayerRef.value?.stop();
+                    isLive.value = false;
+                }
             }else if (data.msg) {
                 const dm: DanmakuMessage = data;
                 liveChatRef.value?.addMessage(dm);

@@ -19,8 +19,8 @@
       <span class="loading-spinner"></span>
       <span>直播连接中...</span>
     </div>
-    <div v-if="playerState === 'idle' && !isPlaying && !errorMsg" class="status-overlay">
-      <span>准备中</span>
+    <div v-if="playerState === 'idle' && !isPlaying" class="status-overlay">
+      <span>{{ errorMsg || '准备中' }}</span>
     </div>
      <div v-if="playerState === 'error'" class="status-overlay error-bg">
       <span>{{ errorMsg }}</span>
@@ -34,7 +34,7 @@
       <div class="left-controls">
          <a-button type="text" ghost @click="togglePlay" class="control-btn">
             <template #icon>
-              <img :src="isPlaying ? pause : play" class="btn-img" />
+              <img :src="isPlaying ? pause : playIcon" class="btn-img" />
             </template>
          </a-button>
          <a-button type="text" ghost @click="toggleMute" class="control-btn">
@@ -63,11 +63,10 @@ import dankuOpen from '@/assets/live/danku_open.svg'
 import dankuClose from '@/assets/live/danku_close.svg'
 import volumeMute from '@/assets/live/volume-mute.svg'
 import volumeNotice from '@/assets/live/volume-notice.svg'
-import play from '@/assets/live/play.svg'
+import playIcon from '@/assets/live/play.svg'
 import pause from '@/assets/live/pause.svg'
 
 import DanmakuOverlay from './DanmakuOverlay.vue';
-import { PlayCircleOutlined, PauseCircleOutlined } from '@ant-design/icons-vue';
 import { startPullStream, type DanmakuMessage } from '@/api/live';
 
 const props = defineProps<{
@@ -103,7 +102,7 @@ const addDanmaku = (msg: DanmakuMessage) => {
     overlayRef.value.addDanmaku(msg);
   }
 };
-defineExpose({ addDanmaku });
+// defineExpose moved to end
 
 const togglePlay = () => {
   const video = videoRef.value;
@@ -312,6 +311,24 @@ onBeforeUnmount(() => {
 
 watch(() => props.classId, () => {
     connectWHEP();
+});
+
+const play = () => {
+    connectWHEP();
+};
+
+const stop = () => {
+    closeConnection();
+    playerState.value = 'idle';
+    errorMsg.value = '直播已结束';
+    isPlaying.value = false;
+    emit('status-change', 'stopped');
+};
+
+defineExpose({
+    addDanmaku,
+    play,
+    stop
 });
 </script>
 
