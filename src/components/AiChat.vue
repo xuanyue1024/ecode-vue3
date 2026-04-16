@@ -342,6 +342,10 @@ const sendMessage = async (content: string) => {
       for (const line of lines) {
         if (line.startsWith('event:')) {
           currentEvent = line.slice(6).trim()
+          if (currentEvent === 'end') {
+            isReading = false
+            break
+          }
           continue
         }
 

@@ -261,11 +261,14 @@ const generateProblem = async () => {
     
     const decoder = new TextDecoder('utf-8')
     let buffer = ''
+    let isReading = true
     
-    // eslint-disable-next-line no-constant-condition
-    while (true) {
+    while (isReading) {
       const { done, value } = await reader.read()
-      if (done) break
+      if (done) {
+        isReading = false
+        break
+      }
       
       const chunk = decoder.decode(value, { stream: true })
       buffer += chunk
@@ -273,6 +276,15 @@ const generateProblem = async () => {
       buffer = lines.pop() || ''
       
       for (const line of lines) {
+        if (line.startsWith('event:')) {
+          const currentEvent = line.slice(6).trim()
+          if (currentEvent === 'end') {
+            isReading = false
+            break
+          }
+          continue
+        }
+
         if (line.startsWith('data:')) {
           try {
             const jsonData = JSON.parse(line.slice(5))
