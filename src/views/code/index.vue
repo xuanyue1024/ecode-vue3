@@ -102,6 +102,11 @@
         <div class="bottom-pane" :style="{ height: (100 - topHeight) + '%' }">
           <div class="editor-footer">
             <a-tabs v-model:activeKey="activeTab" class="footer-tabs">
+              <template #rightExtra>
+                <a-button type="primary" size="small" @click="handleAiEvaluate" :loading="isAiEvalLoading" style="margin-right: 16px;">
+                  <RobotOutlined /> AI 评测
+                </a-button>
+              </template>
               <a-tab-pane key="test" tab="测试结果">
                 <div class="test-result-panel">
                   <a-row style="margin-bottom: 10px">
@@ -172,6 +177,23 @@
       <div class="resize-handle" @mousedown.stop="startChatResize"></div>
     </div>
 
+    <!-- AI 评测弹窗 -->
+    <a-modal
+      v-model:open="aiEvalDialogVisible"
+      title="代码 AI 评测结果"
+      width="60%"
+      :footer="null"
+    >
+      <div class="ai-eval-container" v-if="aiEvalResult">
+        <div class="eval-score" style="margin-bottom: 20px; display: flex; align-items: center;">
+          <span style="font-size: 16px; margin-right: 16px; font-weight: bold;">AI 评分:</span>
+          <a-rate :value="aiEvalResult.score" disabled allow-half />
+          <span style="margin-left: 8px; font-size: 16px; color: #ffb800">{{ aiEvalResult.score }} 分</span>
+        </div>
+        <div class="eval-comment markdown-body" v-html="aiEvalResult.renderedComment"></div>
+      </div>
+    </a-modal>
+
     <!-- 添加差异对比弹窗 -->
     <a-modal
       v-model:open="diffDialogVisible"
@@ -210,7 +232,7 @@ import 'github-markdown-css/github-markdown.css'
 import { debugCode } from '@/api/code'
 import { getStudentProblemDetail, runCode } from '@/api/problem'
 import { getUserInfo } from '@/api/user'
-import { createChatId } from '@/api/ai'
+import { createChatId, evaluateCode } from '@/api/ai'
 import SubmissionHistory from './SubmissionHistory.vue'
 import AiChat from '@/components/AiChat.vue'
 import { Diff2HtmlUI } from 'diff2html/lib/ui/js/diff2html-ui'
@@ -275,6 +297,10 @@ const testResult = reactive({
   score: 0,
   diff: [] as string[],
 })
+
+const isAiEvalLoading = ref(false)
+const aiEvalDialogVisible = ref(false)
+const aiEvalResult = ref<{ score: number, comment: string, renderedComment: string } | null>(null)
 
 const diffDialogVisible = ref(false)
 const currentDiffs = ref<string[]>([])
@@ -599,6 +625,50 @@ const debugBtn = async () => {
   } finally {
     isDebugLoad.value = false
     isDebugDisabled.value = false
+  }
+}
+
+const handleAiEvaluate = async () => {
+  const code = monacoEditor?.getValue()
+  if (!code?.trim()) {
+    antMessage.warning('代码不能为空')
+    return
+  }
+  
+  isAiEvalLoading.value = true
+  const data = {
+    problemId: Number(route.query.problemId),
+    code
+  }
+  
+  try {
+    const res = await evaluateCode(data)
+    if (res.data.code === 200 && res.data.data) {
+      aiEvalResult.value = {
+        score: res.data.data.score,
+        comment: res.data.data.comment,
+        renderedComment: '' // will be set below
+      }
+      
+      const parsedComment = marked.parse(res.data.data.comment || '')
+      if (parsedComment instanceof Promise) {
+        aiEvalResult.value.renderedComment = await parsedComment
+      } else {
+        aiEvalResult.value.renderedComment = parsedComment
+      }
+      
+      // Update score to display smoothly and visually correctly up to 5 stars
+      // Only keep max of 5 stars based on whatever mapping if necessary, API says 0-5
+      
+      aiEvalDialogVisible.value = true
+    } else {
+      antMessage.error(res.data.msg || 'AI评测失败')
+    }
+  } catch (error) {
+    console.error(error)
+    antMessage.error('AI评测请求失败')
+  } finally {
+    isAiEvalLoading.value = false
   }
 }
 

@@ -42,3 +42,8 @@ export function deletePdf(classId: string) {
 export function getKnowledgeBasePdfUrl(classId: string) {
     return `/api/teacher/ai/pdf/file/${classId}`
 }
+
+// 代码评测
+export function evaluateCode(data: { problemId: number, code: string }) {
+  return postRequest('/api/user/ai/evaluate', data)
+}
