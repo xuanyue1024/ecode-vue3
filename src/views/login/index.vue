@@ -19,7 +19,9 @@ const meta = {
   numberUrl: import.meta.env.VITE_BUILD_NUMBER_URL || '#',
   url: import.meta.env.VITE_BUILD_URL || '#',
   sha: import.meta.env.VITE_COMMIT_SHA || '000000',
-  date: import.meta.env.VITE_BUILD_DATE || 'Today'
+  date: import.meta.env.VITE_BUILD_DATE || 'Today',
+  icp: import.meta.env.VITE_ICP_NUMBER || '',
+  cdnSponsor: import.meta.env.VITE_CDN_SPONSOR || ''
 };
 
 // 判断是否是本地开发环境 (没有链接就是本地)
@@ -551,6 +553,11 @@ const startCountdown = () => {
 
         <span class="build-date">{{ meta.date }}</span>
       </div>
+
+      <div v-if="meta.cdnSponsor || meta.icp" class="extra-info">
+        <span v-if="meta.cdnSponsor" class="cdn-sponsor" v-html="meta.cdnSponsor"></span>
+        <a v-if="meta.icp" href="https://beian.miit.gov.cn/" target="_blank" class="icp-link">{{ meta.icp }}</a>
+      </div>
     </div>
   </div>
 </template>
@@ -768,6 +775,36 @@ const startCountdown = () => {
 }
 
 .build-link:hover, .version:hover {
+  text-decoration: underline;
+  color: #666;
+}
+
+.extra-info {
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
+.icp-link {
+  color: #999;
+  text-decoration: none;
+}
+
+.icp-link:hover {
+  text-decoration: underline;
+  color: #666;
+}
+
+.cdn-sponsor {
+  color: #999;
+}
+.cdn-sponsor :deep(a) {
+  color: #999;
+  text-decoration: none;
+}
+.cdn-sponsor :deep(a:hover) {
   text-decoration: underline;
   color: #666;
 }

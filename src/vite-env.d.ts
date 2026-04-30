@@ -7,6 +7,8 @@ interface ImportMetaEnv {
   readonly VITE_BUILD_URL: string
   readonly VITE_COMMIT_SHA: string
   readonly VITE_BUILD_DATE: string
+  readonly VITE_ICP_NUMBER?: string
+  readonly VITE_CDN_SPONSOR?: string
 }
 
 interface ImportMeta {
