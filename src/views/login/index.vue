@@ -656,11 +656,6 @@ const startCountdown = () => {
   margin-bottom: 24px;
 }
 
-.left-actions {
-  display: flex;
-  gap: 8px;
-}
-
 .form-actions.right {
   justify-content: flex-end;
 }
@@ -807,6 +802,13 @@ const startCountdown = () => {
 
 .cdn-sponsor {
   color: #999;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+}
+.cdn-sponsor :deep(p) {
+  margin: 0;
 }
 .cdn-sponsor :deep(a) {
   color: #999;
