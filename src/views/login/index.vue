@@ -428,7 +428,7 @@ const startCountdown = () => {
                 <div class="form-actions">
                   <div class="left-actions">
                     <a-button type="link" class="forgot-pwd">忘记密码？</a-button>
-                    <a-button type="link" href="/admin">管理员登录</a-button>
+                    <a-button type="link" href="/admin/login">管理员登录</a-button>
                   </div>
                   <a-button type="link" @click="isLoginPage = false">没有账号？立即注册</a-button>
                 </div>
