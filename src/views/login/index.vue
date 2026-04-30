@@ -426,7 +426,10 @@ const startCountdown = () => {
                 </a-form-item>
                 
                 <div class="form-actions">
-                  <a-button type="link" class="forgot-pwd">忘记密码？</a-button>
+                  <div class="left-actions">
+                    <a-button type="link" class="forgot-pwd">忘记密码？</a-button>
+                    <a-button type="link" @click="router.push('/admin')">管理员登录</a-button>
+                  </div>
                   <a-button type="link" @click="isLoginPage = false">没有账号？立即注册</a-button>
                 </div>
 
@@ -651,6 +654,11 @@ const startCountdown = () => {
   display: flex;
   justify-content: space-between;
   margin-bottom: 24px;
+}
+
+.left-actions {
+  display: flex;
+  gap: 8px;
 }
 
 .form-actions.right {
